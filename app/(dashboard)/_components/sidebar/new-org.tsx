@@ -4,7 +4,7 @@ import { CommonModal, CommonModalTrigger } from "@/components/common-modal";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/stores/use-modal";
-import { CreateOrganization, SignUp } from "@clerk/nextjs";
+import { CreateOrganization } from "@clerk/nextjs";
 
 import { Plus } from "lucide-react";
 

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-export type ModalType = "new-org";
+export type ModalType = "new-org" | "invite-member";
 export interface ModalData {}
 interface ModalStore {
   type: ModalType | null;

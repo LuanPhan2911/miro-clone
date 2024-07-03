@@ -33,7 +33,7 @@ export const OrgSidebar = () => {
           elements: {
             rootBox: "flex items-center w-full",
             organizationSwitcherTrigger: "w-full flex justify-between p-[6px]",
-            organizationPreviewMainIdentifier: "text-lg",
+            organizationPreviewMainIdentifier: "text-md font-semibold",
           },
         }}
       />
