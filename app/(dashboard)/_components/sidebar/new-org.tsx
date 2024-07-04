@@ -22,6 +22,7 @@ export const NewOrgButton = () => {
 export const NewOrg = () => {
   const { isOpen, type } = useModal();
   const isOpenModal = isOpen && type === "new-org";
+
   return (
     <CommonModal
       isOpen={isOpenModal}
