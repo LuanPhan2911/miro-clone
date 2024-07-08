@@ -13,6 +13,7 @@ type Props = {
   description?: string;
   children: React.ReactNode;
   isOpen: boolean;
+  className?: string;
 };
 
 export const CommonModal = ({
@@ -20,11 +21,12 @@ export const CommonModal = ({
   description,
   children,
   isOpen,
+  className,
 }: Props) => {
   const { onClose } = useModal();
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className={className}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {!!description && (
@@ -35,23 +37,5 @@ export const CommonModal = ({
         {children}
       </DialogContent>
     </Dialog>
-  );
-};
-export const CommonModalTrigger = ({
-  data,
-  type,
-  children,
-}: {
-  data?: ModalData;
-  type: ModalType;
-  children: React.ReactNode;
-}) => {
-  const { onOpen } = useModal();
-  const onClick = () => onOpen(type, data);
-
-  return (
-    <div className="h-fit w-fit" onClick={onClick}>
-      {children}
-    </div>
   );
 };

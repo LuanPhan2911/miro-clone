@@ -1,6 +1,6 @@
 "use client";
 
-import { CommonModal, CommonModalTrigger } from "@/components/common-modal";
+import { CommonModal } from "@/components/common-modal";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/stores/use-modal";
@@ -9,14 +9,17 @@ import { CreateOrganization } from "@clerk/nextjs";
 import { Plus } from "lucide-react";
 
 export const NewOrgButton = () => {
+  const { onOpen } = useModal();
   return (
-    <CommonModalTrigger type="new-org">
-      <Hint label="Create Organization" side="right">
-        <Button size={"icon"} className="bg-white/15">
-          <Plus className="w-6 h-6" />
-        </Button>
-      </Hint>
-    </CommonModalTrigger>
+    <Hint label="Create Organization" side="right">
+      <Button
+        size={"icon"}
+        className="bg-white/15"
+        onClick={() => onOpen("new-org")}
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
+    </Hint>
   );
 };
 export const NewOrg = () => {

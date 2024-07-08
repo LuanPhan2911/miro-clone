@@ -1,10 +1,11 @@
 "use client";
 
-import { CommonModalTrigger } from "@/components/common-modal";
 import { Button } from "@/components/ui/button";
+import { useModal } from "@/stores/use-modal";
 import Image from "next/image";
 
 export const EmptyState = () => {
+  const { onOpen } = useModal();
   return (
     <div className="h-full flex flex-col items-center justify-center">
       <Image src={"/element.svg"} alt="Empty" width={200} height={200} />
@@ -13,9 +14,9 @@ export const EmptyState = () => {
         Create an organization to get started
       </p>
       <div className="mt-6">
-        <CommonModalTrigger type="new-org">
-          <Button size={"lg"}>Create organization</Button>
-        </CommonModalTrigger>
+        <Button size={"lg"} onClick={() => onOpen("new-org")}>
+          Create organization
+        </Button>
       </div>
     </div>
   );

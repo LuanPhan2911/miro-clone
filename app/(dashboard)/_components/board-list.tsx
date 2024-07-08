@@ -1,14 +1,20 @@
-import { Button } from "@/components/ui/button";
+"use client";
 import Image from "next/image";
 import { CreateBoardButton } from "./create-board-button";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { BoardCard, BoardCardSkeleton } from "./board-card";
+import { NewBoardTrigger } from "./new-board";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BoardListProps {
-  orgId?: string;
+  orgId: string;
   query: {
     search?: string;
     favorite?: string;
   };
 }
+
 export const EmptyBoard = ({
   src,
   title,
@@ -29,9 +35,17 @@ export const EmptyBoard = ({
     </div>
   );
 };
-export const BoardList = ({ query }: BoardListProps) => {
-  const data = [];
-  if (!data.length && query.search) {
+
+export const BoardList = ({ query, orgId }: BoardListProps) => {
+  const data = useQuery(api.boards.get, {
+    orgId: orgId,
+  });
+  const title = query.favorite ? "Favorite boards" : "Team boards";
+  const loading = data === undefined;
+  if (loading) {
+    return <BoardListSkeleton />;
+  }
+  if (!data?.length && query.search) {
     return (
       <EmptyBoard
         src="/nothing.png"
@@ -40,7 +54,7 @@ export const BoardList = ({ query }: BoardListProps) => {
       />
     );
   }
-  if (!data.length && query.favorite) {
+  if (!data?.length && query.favorite) {
     return (
       <EmptyBoard
         src="/nofavorite.png"
@@ -49,7 +63,7 @@ export const BoardList = ({ query }: BoardListProps) => {
       />
     );
   }
-  if (!data.length) {
+  if (!data?.length) {
     return (
       <EmptyBoard
         src="/noboard.png"
@@ -59,5 +73,45 @@ export const BoardList = ({ query }: BoardListProps) => {
       />
     );
   }
-  return <div>Board List</div>;
+  return (
+    <div>
+      <h2 className="text-3xl">{title}</h2>
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5
+      2xl:grid-cols-6 gap-8 mt-8 pb-10"
+      >
+        <NewBoardTrigger disabled={loading} orgId={orgId} />
+        {data?.map((board) => {
+          return (
+            <BoardCard
+              key={board._id}
+              id={board._id}
+              title={board.title}
+              authorId={board.authorId}
+              authorName={board.authorName}
+              imageUrl={board.imageUrl}
+              createdAt={board._creationTime}
+              orgId={board.orgId}
+              isFavorite={true}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+export const BoardListSkeleton = () => {
+  return (
+    <div>
+      <Skeleton className="h-16 w-48" />
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5
+      2xl:grid-cols-6 gap-8 mt-8 pb-10"
+      >
+        {[...Array(6)].map((_, i) => {
+          return <BoardCardSkeleton key={i} />;
+        })}
+      </div>
+    </div>
+  );
 };

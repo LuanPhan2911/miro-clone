@@ -1,6 +1,6 @@
 "use client";
 
-import { CommonModal, CommonModalTrigger } from "@/components/common-modal";
+import { CommonModal } from "@/components/common-modal";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/stores/use-modal";
 import { OrganizationProfile, useOrganization } from "@clerk/nextjs";
@@ -16,18 +16,21 @@ export const InviteButton = () => {
     }
   }, [organization, onClose]);
   return (
-    <CommonModal isOpen={isOpenModal} title={"Invite members"}>
+    <CommonModal
+      isOpen={isOpenModal}
+      title={"Invite members"}
+      className="bg-transparent border-none"
+    >
       {organization && <OrganizationProfile routing="virtual" />}
     </CommonModal>
   );
 };
 export const InviteButtonTrigger = () => {
+  const { onOpen } = useModal();
   return (
-    <CommonModalTrigger type="invite-member">
-      <Button variant={"outline"}>
-        <Plus className="w-4 h-4 mr-2" />
-        Invite members
-      </Button>
-    </CommonModalTrigger>
+    <Button variant={"outline"} onClick={() => onOpen("invite-member")}>
+      <Plus className="w-4 h-4 mr-2" />
+      Invite members
+    </Button>
   );
 };

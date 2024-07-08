@@ -2,7 +2,8 @@
 
 import { useOrganization } from "@clerk/nextjs";
 import { EmptyState } from "./_components/empty-state";
-import { BoardList } from "./_components/board-list";
+import { BoardList, BoardListSkeleton } from "./_components/board-list";
+import { Suspense } from "react";
 
 interface Props {
   searchParams: {

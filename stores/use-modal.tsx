@@ -1,6 +1,12 @@
+import { Doc } from "@/convex/_generated/dataModel";
 import { create } from "zustand";
-export type ModalType = "new-org" | "invite-member";
-export interface ModalData {}
+export type ModalType = "new-org" | "invite-member" | "rename-board";
+export interface ModalData {
+  board?: {
+    id?: string;
+    title?: string;
+  };
+}
 interface ModalStore {
   type: ModalType | null;
   isOpen: boolean;
