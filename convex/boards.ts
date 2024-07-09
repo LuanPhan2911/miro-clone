@@ -33,18 +33,37 @@ export const create = mutation({
 export const get = query({
   args: {
     orgId: v.string(),
+    query: v.optional(
+      v.object({
+        search: v.optional(v.string()),
+        isFavorite: v.optional(v.boolean()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Unauthorized");
     }
+    let boards;
+    const title = args.query?.search;
+    if (title) {
+      boards = await ctx.db
+        .query("boards")
+        .withSearchIndex("search_title", (q) => {
+          return q.search("title", title).eq("orgId", args.orgId);
+        })
+        .collect();
+    } else {
+      boards = await ctx.db
+        .query("boards")
+        .withIndex("by_org", (q) => q.eq("orgId", args.orgId))
 
-    const boards = await ctx.db
-      .query("boards")
-      .withIndex("by_org", (q) => q.eq("orgId", args.orgId))
-      .order("desc")
-      .collect();
+        .order("desc")
+
+        .collect();
+    }
+
     const boardWithFavorite = boards.map(async (board) => {
       const favorite = await ctx.db
         .query("userFavorites")
@@ -57,7 +76,14 @@ export const get = query({
         isFavorite: !!favorite,
       };
     });
-
+    if (args.query?.isFavorite) {
+      const filterBoard = (await Promise.all(boardWithFavorite)).filter(
+        (board) => {
+          return board.isFavorite === true;
+        }
+      );
+      return filterBoard;
+    }
     return Promise.all(boardWithFavorite);
   },
 });
@@ -72,6 +98,15 @@ export const destroy = mutation({
     }
 
     await ctx.db.delete(args.id);
+    const existingBoardFavorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_board", (q) => {
+        return q.eq("boardId", args.id);
+      })
+      .collect();
+    existingBoardFavorite.forEach(async (existFavorite) => {
+      await ctx.db.delete(existFavorite._id);
+    });
   },
 });
 export const update = mutation({

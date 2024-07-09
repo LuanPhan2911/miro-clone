@@ -22,7 +22,7 @@ export const CreateBoardButton = ({ label }: { label: string }) => {
         title: "Untitled",
       });
       toast.success("Created board!");
-      // router.push(`/boards/${boardId}`)
+      router.push(`/boards/${boardId}`);
     } catch (error) {
       toast.error("Fail to create board");
     }

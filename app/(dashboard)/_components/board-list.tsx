@@ -39,6 +39,10 @@ export const EmptyBoard = ({
 export const BoardList = ({ query, orgId }: BoardListProps) => {
   const data = useQuery(api.boards.get, {
     orgId: orgId,
+    query: {
+      isFavorite: query.favorite === "true",
+      search: query.search,
+    },
   });
   const title = query.favorite ? "Favorite boards" : "Team boards";
   const loading = data === undefined;

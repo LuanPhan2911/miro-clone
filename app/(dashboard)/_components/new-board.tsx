@@ -4,6 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { useApiMutation } from "@/hooks/use-convex-api";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface NewBoardTriggerProps {
@@ -13,13 +14,15 @@ interface NewBoardTriggerProps {
 
 export const NewBoardTrigger = ({ disabled, orgId }: NewBoardTriggerProps) => {
   const { isPending, mutate } = useApiMutation(api.boards.create);
+  const router = useRouter();
   const onCreate = async () => {
     try {
-      mutate({
+      const boardId = await mutate({
         orgId: orgId,
         title: "Untitled",
       });
       toast.success("Create board!");
+      router.push(`/boards/${boardId}`);
     } catch (error) {
       toast.error("Something went wrong!");
     }
