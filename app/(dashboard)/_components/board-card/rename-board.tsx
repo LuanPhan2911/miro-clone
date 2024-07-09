@@ -2,17 +2,26 @@
 
 import { CommonModal } from "@/components/common-modal";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
-
 import { useApiMutation } from "@/hooks/use-convex-api";
 import { useModal } from "@/stores/use-modal";
-import { DialogClose } from "@radix-ui/react-dialog";
 import { Edit2 } from "lucide-react";
-import { FormEventHandler, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 interface ReNameBoardTriggerProps {
   id: string;
   title: string;
@@ -30,26 +39,40 @@ export const ReNameBoardTrigger = ({ id, title }: ReNameBoardTriggerProps) => {
     </DropdownMenuItem>
   );
 };
+const formSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "Title is required!",
+    })
+    .max(60, {
+      message: "The length of title is no longer than 60 characters!",
+    }),
+});
 export const RenameBoardModal = () => {
   const { isOpen, type, data } = useModal();
   const isOpenModal = isOpen && type === "rename-board";
-
   const [id, setId] = useState("");
-  const [title, setTitle] = useState("");
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+    },
+  });
   const { isPending, mutate } = useApiMutation(api.boards.update);
   const { onClose } = useModal();
   useEffect(() => {
     if (data.board?.title) {
-      setTitle(data.board.title);
+      form.setValue("title", data.board.title);
     }
     if (data.board?.id) {
       setId(data.board.id);
     }
-  }, [data.board]);
-  const handleSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
+  }, [data.board, form]);
+  const onSubmit = async (value: z.infer<typeof formSchema>) => {
     try {
-      await mutate({ id, title });
+      await mutate({ id, title: value.title });
       toast.success("Updated title");
       onClose();
     } catch (error) {
@@ -62,26 +85,36 @@ export const RenameBoardModal = () => {
       title="Rename board"
       description="Enter a new title for this board."
     >
-      <form className="space-y-4 w-[400px]" onSubmit={handleSubmit}>
-        <Input
-          required
-          disabled={isPending}
-          maxLength={60}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Board title"
-        />
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant={"ghost"} type="button">
-              Cancel
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-8 w-[400px]"
+        >
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Title of board" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant={"ghost"} type="button">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={isPending}>
+              Save
             </Button>
-          </DialogClose>
-          <Button type="submit" disabled={isPending}>
-            Save
-          </Button>
-        </DialogFooter>
-      </form>
+          </DialogFooter>
+        </form>
+      </Form>
     </CommonModal>
   );
 };

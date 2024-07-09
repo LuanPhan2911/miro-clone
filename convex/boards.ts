@@ -45,7 +45,20 @@ export const get = query({
       .withIndex("by_org", (q) => q.eq("orgId", args.orgId))
       .order("desc")
       .collect();
-    return boards;
+    const boardWithFavorite = boards.map(async (board) => {
+      const favorite = await ctx.db
+        .query("userFavorites")
+        .withIndex("by_user_board", (q) => {
+          return q.eq("userId", identity.subject).eq("boardId", board._id);
+        })
+        .unique();
+      return {
+        ...board,
+        isFavorite: !!favorite,
+      };
+    });
+
+    return Promise.all(boardWithFavorite);
   },
 });
 export const destroy = mutation({
@@ -81,6 +94,86 @@ export const update = mutation({
     const board = await ctx.db.patch(args.id, {
       title: args.title,
     });
+    return board;
+  },
+});
+export const favorite = mutation({
+  args: {
+    orgId: v.string(),
+    boardId: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    const userId = identity.subject;
+    if (board.orgId !== args.orgId) {
+      throw new Error("Org Id is invalid");
+    }
+    const existingBoardFavorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_board_org", (q) => {
+        return q
+          .eq("userId", userId)
+          .eq("boardId", board._id)
+          .eq("orgId", args.orgId);
+      })
+      .unique();
+    if (existingBoardFavorite) {
+      throw new Error("Board already favorite!");
+    }
+
+    await ctx.db.insert("userFavorites", {
+      boardId: board._id,
+      orgId: args.orgId,
+      userId,
+    });
+    return board;
+  },
+});
+export const unfavorite = mutation({
+  args: {
+    orgId: v.string(),
+    boardId: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    const userId = identity.subject;
+    if (board.orgId !== args.orgId) {
+      throw new Error("Org Id is invalid");
+    }
+    const existingBoardFavorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_board_org", (q) => {
+        return q
+          .eq("userId", userId)
+          .eq("boardId", board._id)
+          .eq("orgId", args.orgId);
+      })
+      .unique();
+    if (!existingBoardFavorite) {
+      throw new Error("Board no favorite!");
+    }
+
+    await ctx.db.delete(existingBoardFavorite._id);
     return board;
   },
 });

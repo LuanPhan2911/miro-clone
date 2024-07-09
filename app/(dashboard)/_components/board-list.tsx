@@ -92,7 +92,7 @@ export const BoardList = ({ query, orgId }: BoardListProps) => {
               imageUrl={board.imageUrl}
               createdAt={board._creationTime}
               orgId={board.orgId}
-              isFavorite={true}
+              isFavorite={board.isFavorite}
             />
           );
         })}
