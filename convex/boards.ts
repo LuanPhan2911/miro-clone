@@ -84,7 +84,7 @@ export const get = query({
       );
       return filterBoard;
     }
-    return Promise.all(boardWithFavorite);
+    return await Promise.all(boardWithFavorite);
   },
 });
 export const destroy = mutation({
@@ -209,6 +209,15 @@ export const unfavorite = mutation({
     }
 
     await ctx.db.delete(existingBoardFavorite._id);
+    return board;
+  },
+});
+export const getOne = query({
+  args: {
+    id: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    const board = await ctx.db.get(args.id);
     return board;
   },
 });
