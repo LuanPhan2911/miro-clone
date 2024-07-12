@@ -14,7 +14,6 @@ export const Cursor = memo(({ connectionId }: CursorProps) => {
   }
   const { x, y } = cursor;
   const name = info?.name || "Teammate";
-  console.log(cursor);
 
   return (
     <foreignObject
