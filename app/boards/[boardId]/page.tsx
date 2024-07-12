@@ -1,7 +1,7 @@
 "use client";
 
 import { Room } from "@/components/room";
-import { Canvas, CanvasLoading } from "./_components/canvas";
+import { Canvas } from "./_components/canvas";
 
 interface BoardIdPageProps {
   params: {
@@ -10,7 +10,7 @@ interface BoardIdPageProps {
 }
 const BoardIdPage = ({ params }: BoardIdPageProps) => {
   return (
-    <Room roomId={params.boardId} fallback={<CanvasLoading />}>
+    <Room roomId={params.boardId} fallback={<Canvas.Skeleton />}>
       <Canvas boardId={params.boardId} />
     </Room>
   );
