@@ -6,10 +6,11 @@ import { useSelf, useStorage } from "@liveblocks/react/suspense";
 import { memo } from "react";
 interface SelectionBoxProps {
   onResizePointerDown: (corner: Side, initialBounds: XYWH) => void;
+  hidden?: boolean;
 }
 const HANDLE_WIDTH = 8;
 export const SelectionBox = memo(
-  ({ onResizePointerDown }: SelectionBoxProps) => {
+  ({ onResizePointerDown, hidden }: SelectionBoxProps) => {
     const soleLayerId = useSelf((me) =>
       me.presence.selection.length === 1 ? me.presence.selection[0] : null
     );
@@ -18,7 +19,7 @@ export const SelectionBox = memo(
         soleLayerId && root.layers.get(soleLayerId)?.type !== LayerType.Path
     );
     const bounds = useSelectionBound();
-    if (!bounds) {
+    if (!bounds || hidden) {
       return null;
     }
     return (

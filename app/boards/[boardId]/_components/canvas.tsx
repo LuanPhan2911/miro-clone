@@ -19,6 +19,8 @@ import {
   XYWH,
 } from "@/types/canvas";
 import {
+  useCanRedo,
+  useCanUndo,
   useHistory,
   useMutation,
   useOthersMapped,
@@ -51,9 +53,11 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     undo,
     canRedo,
     canUndo,
+    clear: historyClear,
     resume: historyResume,
     pause: historyPause,
   } = useHistory();
+
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
   const [lastUsedColor, setLastUsedColor] = useState<Color>({
     b: 255,
@@ -104,6 +108,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     [lastUsedColor]
   );
   const deleteLayer = useDeleteLayer();
+
   const resizeSelectedLayer = useMutation(
     ({ storage, self }, point: Point) => {
       if (canvasState.mode !== CanvasMode.Resizing) {
@@ -123,10 +128,11 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     [canvasState]
   );
   const onPointerUp = useMutation(
-    ({ setMyPresence }, e: React.PointerEvent) => {
+    ({}, e: React.PointerEvent) => {
       const point = pointerEventToCanvasPoint(e, camera);
-
-      if (
+      if (canvasState.mode === CanvasMode.Delete) {
+        deleteLayer();
+      } else if (
         canvasState.mode === CanvasMode.Pressing ||
         canvasState.mode === CanvasMode.None
       ) {
@@ -140,7 +146,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       }
       historyResume(); //??
     },
-    [camera, canvasState, historyResume, insertLayer]
+    [camera, canvasState, historyResume, insertLayer, deleteLayer]
   );
   const onPointerMove = useMutation(
     ({ setMyPresence }, e: React.PointerEvent) => {
@@ -154,6 +160,8 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         resizeSelectedLayer(current);
       } else if (canvasState.mode === CanvasMode.Translating) {
         translateSelectedLayer(current);
+      } else if (canvasState.mode === CanvasMode.Pressing) {
+        translateCamera(current);
       }
     },
     [canvasState, camera, resizeSelectedLayer]
@@ -163,7 +171,10 @@ export const Canvas = ({ boardId }: CanvasProps) => {
   }, []);
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (canvasState.mode === CanvasMode.Inserting) {
+      if (
+        canvasState.mode === CanvasMode.Inserting ||
+        canvasState.mode === CanvasMode.Delete
+      ) {
         return;
       }
       const point = pointerEventToCanvasPoint(e, camera);
@@ -186,6 +197,38 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     if (e.key === "Delete") {
       deleteLayer();
     }
+    if (e.key === "ArrowUp") {
+      setCamera((prev) => {
+        return {
+          ...prev,
+          y: prev.y + 16,
+        };
+      });
+    }
+    if (e.key === "ArrowDown") {
+      setCamera((prev) => {
+        return {
+          ...prev,
+          y: prev.y - 16,
+        };
+      });
+    }
+    if (e.key === "ArrowLeft") {
+      setCamera((prev) => {
+        return {
+          ...prev,
+          x: prev.x + 16,
+        };
+      });
+    }
+    if (e.key === "ArrowRight") {
+      setCamera((prev) => {
+        return {
+          ...prev,
+          x: prev.x - 16,
+        };
+      });
+    }
   };
   const onLayerPointerDown = useMutation(
     ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
@@ -202,7 +245,9 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       if (!self.presence.selection.includes(layerId)) {
         setMyPresence({ selection: [layerId] }, { addToHistory: true });
       }
-      setCanvasState({ mode: CanvasMode.Translating, current: point });
+      if (canvasState.mode !== CanvasMode.Delete) {
+        setCanvasState({ mode: CanvasMode.Translating, current: point });
+      }
     },
     [setCanvasState, historyPause, camera, canvasState.mode]
   );
@@ -248,6 +293,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       setMyPresence({ selection: [] }, { addToHistory: true });
     }
   }, []);
+  const translateCamera = useCallback((point: Point) => {}, []);
 
   const selections = useOthersMapped((other) => other.presence.selection);
   const layerIdsToColorSelection = useMemo(() => {
@@ -271,8 +317,16 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         undo={undo}
         canRedo={canRedo()}
         canUndo={canUndo()}
+        clearHistory={historyClear}
+        lastUseColor={lastUsedColor}
+        setLastUsedColor={setLastUsedColor}
+        isClear={layersId.length === 0}
       />
-      <SelectionTool camera={camera} setLastUsedColor={setLastUsedColor} />
+      <SelectionTool
+        camera={camera}
+        hidden={canvasState.mode === CanvasMode.Delete}
+        setLastUsedColor={setLastUsedColor}
+      />
 
       <svg
         className="w-[100vw] h-[100vh]"

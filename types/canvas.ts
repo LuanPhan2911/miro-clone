@@ -81,6 +81,9 @@ export type CanvasState =
       mode: CanvasMode.None;
     }
   | {
+      mode: CanvasMode.Delete;
+    }
+  | {
       mode: CanvasMode.Pressing;
       origin: Point;
     }
@@ -112,6 +115,7 @@ export type CanvasState =
 
 export enum CanvasMode {
   None,
+  Delete,
   Pressing,
   SelectNet,
   Translating,

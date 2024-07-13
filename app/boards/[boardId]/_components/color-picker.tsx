@@ -48,11 +48,31 @@ export const ColorPicker = ({ onChange }: ColorPickerProps) => {
       g: 255,
       b: 255,
     },
+    {
+      r: 15,
+      g: 224,
+      b: 76,
+    },
+    {
+      r: 225,
+      g: 154,
+      b: 9,
+    },
+    {
+      r: 73,
+      g: 74,
+      b: 72,
+    },
+    {
+      r: 243,
+      g: 0,
+      b: 72,
+    },
   ];
   return (
     <div
       className="flex flex-wrap gap-2 items-center
-    max-w-[164px] pr-2 mr-2 border-r border-neutral-200"
+    max-w-[164px]"
     >
       {colors.map((color, index) => {
         return <ColorButton key={index} onClick={onChange} value={color} />;

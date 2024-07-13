@@ -1,3 +1,5 @@
+import { Layer } from "@/types/canvas";
+import { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 import { useMutation, useSelf } from "@liveblocks/react/suspense";
 
 export const useDeleteLayer = () => {
@@ -23,4 +25,20 @@ export const useDeleteLayer = () => {
     },
     [selection]
   );
+};
+export const useDeleteAllLayer = () => {
+  return useMutation(({ storage, setMyPresence }) => {
+    storage.update({
+      layerIds: new LiveList<string>([]),
+      layers: new LiveMap<string, LiveObject<Layer>>(),
+    });
+    setMyPresence(
+      {
+        selection: [],
+      },
+      {
+        addToHistory: true,
+      }
+    );
+  }, []);
 };

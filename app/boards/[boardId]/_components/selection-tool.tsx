@@ -8,14 +8,15 @@ import { ColorPicker } from "./color-picker";
 import { useDeleteLayer } from "@/hooks/use-delete-layer";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { BringToFront, SendToBackIcon, Trash2 } from "lucide-react";
 
 interface SelectionToolProps {
   camera: Camera;
+  hidden?: boolean;
   setLastUsedColor: (color: Color) => void;
 }
 export const SelectionTool = memo(
-  ({ camera, setLastUsedColor }: SelectionToolProps) => {
+  ({ camera, hidden, setLastUsedColor }: SelectionToolProps) => {
     const selection = useSelf((me) => me.presence.selection);
     const setFill = useMutation(
       ({ storage }, fill: Color) => {
@@ -30,9 +31,10 @@ export const SelectionTool = memo(
     const selectionBounds = useSelectionBound();
     const deleteLayer = useDeleteLayer();
 
-    if (!selectionBounds) {
+    if (!selectionBounds || hidden) {
       return null;
     }
+
     const x = selectionBounds.width / 2 + selectionBounds.x + camera.x;
     const y = selectionBounds.y + camera.y;
     return (
@@ -44,6 +46,18 @@ export const SelectionTool = memo(
         }}
       >
         <ColorPicker onChange={(color) => setFill(color)} />
+        <div className="flex flex-col gap-y-0.5 pl-2 ml-2 border-l border-neutral-200">
+          <Hint label="Bring to front">
+            <Button variant={"board"} size={"icon"}>
+              <BringToFront />
+            </Button>
+          </Hint>
+          <Hint label="Send to back">
+            <Button variant={"board"} size={"icon"}>
+              <SendToBackIcon />
+            </Button>
+          </Hint>
+        </div>
         <div className="flex items-center pl-2 ml-2 border-l border-neutral-200">
           <Hint label="Delete">
             <Button variant={"board"} size={"icon"} onClick={deleteLayer}>
