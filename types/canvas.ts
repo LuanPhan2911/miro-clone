@@ -113,6 +113,17 @@ export type CanvasState =
       mode: CanvasMode.Pencil;
     };
 
+export enum CursorMode {
+  Chat,
+  Hidden,
+}
+export type CursorState =
+  | {
+      mode: CursorMode.Hidden;
+    }
+  | {
+      mode: CursorMode.Chat;
+    };
 export enum CanvasMode {
   None,
   Delete,

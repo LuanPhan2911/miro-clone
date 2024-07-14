@@ -6,21 +6,21 @@ import { Participants } from "./participants";
 import { Toolbar } from "./toolbar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import {
   Camera,
   CanvasMode,
   CanvasState,
   Color,
+  CursorMode,
+  CursorState,
   LayerType,
   Point,
   Side,
   XYWH,
 } from "@/types/canvas";
 import {
-  useCanRedo,
-  useCanUndo,
   useHistory,
   useMutation,
   useOthersMapped,
@@ -38,6 +38,7 @@ import { LayerPreview } from "./layer-preview";
 import { SelectionBox } from "./selection-box";
 import { SelectionTool } from "./selection-tool";
 import { useDeleteLayer } from "@/hooks/use-delete-layer";
+import { CursorChat } from "./cursor-chat";
 const MAX_LAYER = 100;
 interface CanvasProps {
   boardId: string;
@@ -47,6 +48,10 @@ export const Canvas = ({ boardId }: CanvasProps) => {
 
   const [canvasState, setCanvasState] = useState<CanvasState>({
     mode: CanvasMode.None,
+  });
+
+  const [cursorState, setCursorState] = useState<CursorState>({
+    mode: CursorMode.Hidden,
   });
   const {
     redo,
@@ -60,9 +65,9 @@ export const Canvas = ({ boardId }: CanvasProps) => {
 
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
   const [lastUsedColor, setLastUsedColor] = useState<Color>({
-    b: 255,
-    g: 255,
-    r: 255,
+    b: 0,
+    g: 0,
+    r: 0,
   });
   //Pointer move and Pointer leave
 
@@ -127,6 +132,64 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     },
     [canvasState]
   );
+
+  useEffect(() => {
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        setCursorState({ mode: CursorMode.Chat });
+      }
+      if (e.key === "Escape") {
+        setCursorState({ mode: CursorMode.Hidden });
+      }
+      if (e.key === "Delete") {
+        deleteLayer();
+      }
+      if (e.key === "ArrowUp") {
+        setCamera((prev) => {
+          return {
+            ...prev,
+            y: prev.y + 16,
+          };
+        });
+      }
+      if (e.key === "ArrowDown") {
+        setCamera((prev) => {
+          return {
+            ...prev,
+            y: prev.y - 16,
+          };
+        });
+      }
+      if (e.key === "ArrowLeft") {
+        setCamera((prev) => {
+          return {
+            ...prev,
+            x: prev.x + 16,
+          };
+        });
+      }
+      if (e.key === "ArrowRight") {
+        setCamera((prev) => {
+          return {
+            ...prev,
+            x: prev.x - 16,
+          };
+        });
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [deleteLayer]);
   const onPointerUp = useMutation(
     ({}, e: React.PointerEvent) => {
       const point = pointerEventToCanvasPoint(e, camera);
@@ -161,7 +224,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       } else if (canvasState.mode === CanvasMode.Translating) {
         translateSelectedLayer(current);
       } else if (canvasState.mode === CanvasMode.Pressing) {
-        translateCamera(current);
+        translateCamera(canvasState.origin, current);
       }
     },
     [canvasState, camera, resizeSelectedLayer]
@@ -193,43 +256,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     });
   }, []);
   //Pointer Scroll
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Delete") {
-      deleteLayer();
-    }
-    if (e.key === "ArrowUp") {
-      setCamera((prev) => {
-        return {
-          ...prev,
-          y: prev.y + 16,
-        };
-      });
-    }
-    if (e.key === "ArrowDown") {
-      setCamera((prev) => {
-        return {
-          ...prev,
-          y: prev.y - 16,
-        };
-      });
-    }
-    if (e.key === "ArrowLeft") {
-      setCamera((prev) => {
-        return {
-          ...prev,
-          x: prev.x + 16,
-        };
-      });
-    }
-    if (e.key === "ArrowRight") {
-      setCamera((prev) => {
-        return {
-          ...prev,
-          x: prev.x - 16,
-        };
-      });
-    }
-  };
+
   const onLayerPointerDown = useMutation(
     ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
       if (
@@ -293,7 +320,18 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       setMyPresence({ selection: [] }, { addToHistory: true });
     }
   }, []);
-  const translateCamera = useCallback((point: Point) => {}, []);
+  const translateCamera = useCallback((origin: Point, point: Point) => {
+    const offset = {
+      x: point.x - origin.x,
+      y: point.y - origin.y,
+    };
+    setCamera((prev) => {
+      return {
+        x: prev.x + offset.x,
+        y: prev.y + offset.y,
+      };
+    });
+  }, []);
 
   const selections = useOthersMapped((other) => other.presence.selection);
   const layerIdsToColorSelection = useMemo(() => {
@@ -307,12 +345,19 @@ export const Canvas = ({ boardId }: CanvasProps) => {
   }, [selections]);
 
   return (
-    <main className="h-full w-full bg-neutral-100 touch-none relative">
+    <main
+      className="h-full w-full bg-neutral-100 touch-none relative"
+      style={{
+        cursor: "url(/cursor.svg) 0 0, auto",
+      }}
+    >
       <Info boardId={boardId} />
       <Participants />
       <Toolbar
         canvasState={canvasState}
+        cursorState={cursorState}
         setCanvasState={setCanvasState}
+        setCursorState={setCursorState}
         redo={redo}
         undo={undo}
         canRedo={canRedo()}
@@ -327,6 +372,8 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         hidden={canvasState.mode === CanvasMode.Delete}
         setLastUsedColor={setLastUsedColor}
       />
+      <CursorPresence />
+      <CursorChat cursorState={cursorState} />
 
       <svg
         className="w-[100vw] h-[100vh]"
@@ -335,8 +382,6 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         onPointerLeave={onPointerLeave}
         onPointerUp={onPointerUp}
         onPointerDown={onPointerDown}
-        onKeyDown={onKeyDown}
-        tabIndex={-1}
       >
         <g
           style={{
@@ -354,7 +399,6 @@ export const Canvas = ({ boardId }: CanvasProps) => {
             );
           })}
           <SelectionBox onResizePointerDown={onResizePointerDown} />
-          <CursorPresence />
         </g>
       </svg>
     </main>
