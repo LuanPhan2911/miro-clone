@@ -16,6 +16,9 @@ import {
   MessageCircle,
   MessageSquareMore,
   Trash2,
+  Settings2,
+  AlertCircle,
+  RadioTower,
 } from "lucide-react";
 import {
   CanvasMode,
@@ -27,14 +30,16 @@ import {
 } from "@/types/canvas";
 import { ToolbarColorButton } from "./toolbar-color-button";
 import { AlertModal } from "@/components/alert-modal";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useDeleteAllLayer } from "@/hooks/use-delete-layer";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
+import { useUpdateMyPresence } from "@liveblocks/react/suspense";
 
 interface ToolbarProps {
   canvasState: CanvasState;
   cursorState: CursorState;
+  showSelectionLayerInfo: boolean;
   setCanvasState: (state: CanvasState) => void;
   redo: () => void;
   undo: () => void;
@@ -45,6 +50,7 @@ interface ToolbarProps {
   clearHistory: () => void;
   setLastUsedColor: (color: Color) => void;
   setCursorState: (state: CursorState) => void;
+  setShowSelectionLayerInfo: (value: boolean) => void;
 }
 export const Toolbar = ({
   canRedo,
@@ -53,16 +59,20 @@ export const Toolbar = ({
   cursorState,
   lastUseColor,
   isClear,
+  showSelectionLayerInfo,
   setLastUsedColor,
   redo,
   setCanvasState,
   undo,
   clearHistory,
   setCursorState,
+  setShowSelectionLayerInfo,
 }: ToolbarProps) => {
   const [isRedo, setRedo] = useState(false);
   const [isUndo, setUndo] = useState(false);
   const deleteAllLayer = useDeleteAllLayer();
+  const [isPending, setPending] = useState(false);
+  const updatePresence = useUpdateMyPresence();
 
   useEffect(() => {
     setRedo(() => canRedo);
@@ -76,9 +86,21 @@ export const Toolbar = ({
   const toggleCursorChat = () => {
     if (cursorState.mode === CursorMode.Hidden) {
       setCursorState({ mode: CursorMode.Chat });
-    } else {
+    } else if (cursorState.mode === CursorMode.Chat) {
       setCursorState({ mode: CursorMode.Hidden });
     }
+  };
+  const onPingCursor = () => {
+    setPending(true);
+    setCursorState({ mode: CursorMode.Ping });
+    updatePresence({
+      ping: true,
+    });
+    setTimeout(() => {
+      setCursorState({ mode: CursorMode.Hidden });
+      updatePresence({ ping: false });
+      setPending(false);
+    }, 5000);
   };
 
   return (
@@ -232,6 +254,17 @@ export const Toolbar = ({
             icon={MessageCircle}
             label="Chats"
             onClick={toggleCursorChat}
+          />
+          <ToolbarButton
+            icon={RadioTower}
+            label="Ping"
+            disabled={isPending}
+            onClick={onPingCursor}
+          />
+          <ToolbarButton
+            icon={Settings2}
+            label="Layer Info (need select layer)"
+            onClick={() => setShowSelectionLayerInfo(!showSelectionLayerInfo)}
           />
           <ToolbarButton
             icon={MessageSquareMore}

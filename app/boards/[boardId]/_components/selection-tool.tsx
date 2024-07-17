@@ -30,6 +30,39 @@ export const SelectionTool = memo(
     );
     const selectionBounds = useSelectionBound();
     const deleteLayer = useDeleteLayer();
+    const sendToBack = useMutation(
+      ({ storage }) => {
+        const liveLayerIds = storage.get("layerIds");
+        const indices: number[] = [];
+        liveLayerIds.forEach((layerId, index) => {
+          if (selection.includes(layerId)) {
+            indices.push(index);
+          }
+        });
+        indices.forEach((idx, index) => {
+          liveLayerIds.move(idx, index);
+        });
+      },
+      [selection]
+    );
+    const bringToFront = useMutation(
+      ({ storage }) => {
+        const liveLayerIds = storage.get("layerIds");
+        const indices: number[] = [];
+        liveLayerIds.forEach((layerId, index) => {
+          if (selection.includes(layerId)) {
+            indices.push(index);
+          }
+        });
+        for (let i = indices.length - 1; i >= 0; i--) {
+          liveLayerIds.move(
+            indices[i],
+            liveLayerIds.length - 1 - (indices.length - 1 - i)
+          );
+        }
+      },
+      [selection]
+    );
 
     if (!selectionBounds || hidden) {
       return null;
@@ -48,12 +81,12 @@ export const SelectionTool = memo(
         <ColorPicker onChange={(color) => setFill(color)} />
         <div className="flex flex-col gap-y-0.5 pl-2 ml-2 border-l border-neutral-200">
           <Hint label="Bring to front">
-            <Button variant={"board"} size={"icon"}>
+            <Button variant={"board"} size={"icon"} onClick={bringToFront}>
               <BringToFront />
             </Button>
           </Hint>
           <Hint label="Send to back">
-            <Button variant={"board"} size={"icon"}>
+            <Button variant={"board"} size={"icon"} onClick={sendToBack}>
               <SendToBackIcon />
             </Button>
           </Hint>

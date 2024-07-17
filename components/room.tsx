@@ -21,6 +21,7 @@ export function Room({ children, roomId, fallback }: RoomProps) {
       <RoomProvider
         id={roomId}
         initialPresence={{
+          ping: false,
           message: "",
           previousMessage: null,
           selection: [],

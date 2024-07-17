@@ -116,6 +116,7 @@ export type CanvasState =
 export enum CursorMode {
   Chat,
   Hidden,
+  Ping,
 }
 export type CursorState =
   | {
@@ -123,6 +124,9 @@ export type CursorState =
     }
   | {
       mode: CursorMode.Chat;
+    }
+  | {
+      mode: CursorMode.Ping;
     };
 export enum CanvasMode {
   None,

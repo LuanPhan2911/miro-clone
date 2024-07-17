@@ -41,7 +41,7 @@ export const CursorChat = memo(({ cursorState }: CursorChatProps) => {
       setMessage("");
     }
   };
-  if (!cursor || cursorState.mode === CursorMode.Hidden) {
+  if (!cursor || cursorState.mode !== CursorMode.Chat) {
     return null;
   }
   const { x, y } = cursor;

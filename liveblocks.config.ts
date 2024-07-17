@@ -13,6 +13,7 @@ declare global {
       selection: string[];
       message: string;
       previousMessage: string | null;
+      ping: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.

@@ -39,6 +39,8 @@ import { SelectionBox } from "./selection-box";
 import { SelectionTool } from "./selection-tool";
 import { useDeleteLayer } from "@/hooks/use-delete-layer";
 import { CursorChat } from "./cursor-chat";
+import { SelectionLayerInfo } from "./selection-layer-info";
+import { CursorPing } from "./cursor-ping";
 const MAX_LAYER = 100;
 interface CanvasProps {
   boardId: string;
@@ -69,6 +71,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     g: 0,
     r: 0,
   });
+  const [showSelectionLayerInfo, setShowSelectionLayerInfo] = useState(true);
   //Pointer move and Pointer leave
 
   const insertLayer = useMutation(
@@ -356,8 +359,10 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       <Toolbar
         canvasState={canvasState}
         cursorState={cursorState}
+        showSelectionLayerInfo={showSelectionLayerInfo}
         setCanvasState={setCanvasState}
         setCursorState={setCursorState}
+        setShowSelectionLayerInfo={setShowSelectionLayerInfo}
         redo={redo}
         undo={undo}
         canRedo={canRedo()}
@@ -372,8 +377,13 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         hidden={canvasState.mode === CanvasMode.Delete}
         setLastUsedColor={setLastUsedColor}
       />
+      <SelectionLayerInfo
+        isShown={showSelectionLayerInfo}
+        setShown={setShowSelectionLayerInfo}
+      />
       <CursorPresence />
       <CursorChat cursorState={cursorState} />
+      <CursorPing cursorState={cursorState} />
 
       <svg
         className="w-[100vw] h-[100vh]"

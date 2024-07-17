@@ -8,7 +8,7 @@ interface CursorProps {
 }
 export const Cursor = memo(({ connectionId }: CursorProps) => {
   const info = useOther(connectionId, (user) => user.info);
-  const { cursor, previousMessage, message } = useOther(
+  const { cursor, previousMessage, message, ping } = useOther(
     connectionId,
     (user) => user.presence
   );
@@ -17,7 +17,27 @@ export const Cursor = memo(({ connectionId }: CursorProps) => {
   }
   const { x, y } = cursor;
   const name = info?.name || "Teammate";
-
+  if (ping) {
+    return (
+      <div
+        className="fixed top-0 left-0 pointer-events-none"
+        style={{
+          transform: `translate(${x}px, ${y}px)`,
+        }}
+      >
+        <div className="absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+          <div
+            className="animate-ping w-[60px] h-[60px] rounded-full"
+            style={{
+              background: numberToColor(connectionId),
+            }}
+          >
+            {" "}
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       style={{
