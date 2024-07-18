@@ -19,6 +19,7 @@ import {
   Settings2,
   AlertCircle,
   RadioTower,
+  Hand,
 } from "lucide-react";
 import {
   CanvasMode,
@@ -115,6 +116,18 @@ export const Toolbar = ({
        gap-2 items-center shadow-md"
         >
           <ToolbarButton
+            label="Hand"
+            icon={Hand}
+            onClick={() => {
+              setCanvasState({ mode: CanvasMode.Hand });
+            }}
+            active={
+              canvasState.mode === CanvasMode.Hand ||
+              (canvasState.mode === CanvasMode.Pressing &&
+                canvasState.type === "hand")
+            }
+          />
+          <ToolbarButton
             label="Select"
             icon={MousePointer2}
             onClick={() =>
@@ -124,7 +137,8 @@ export const Toolbar = ({
             }
             active={
               canvasState.mode === CanvasMode.None ||
-              canvasState.mode === CanvasMode.Pressing ||
+              (canvasState.mode === CanvasMode.Pressing &&
+                canvasState.type === "select") ||
               canvasState.mode === CanvasMode.SelectNet ||
               canvasState.mode === CanvasMode.Translating ||
               canvasState.mode === CanvasMode.Resizing
@@ -254,6 +268,7 @@ export const Toolbar = ({
             icon={MessageCircle}
             label="Chats"
             onClick={toggleCursorChat}
+            disabled={isPending}
           />
           <ToolbarButton
             icon={RadioTower}

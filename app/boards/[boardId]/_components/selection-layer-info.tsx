@@ -12,9 +12,8 @@ export const SelectionLayerInfo = ({
   isShown,
   setShown,
 }: SelectionLayerInfoProps) => {
-  const layerId = useSelf((me) =>
-    me.presence.selection.length > 0 ? me.presence.selection[0] : ""
-  );
+  const selection = useSelf((me) => me.presence.selection);
+  const layerId = selection.length === 1 ? selection[0] : "";
   const selectedLayer = useStorage((root) => root.layers.get(layerId));
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
@@ -36,7 +35,8 @@ export const SelectionLayerInfo = ({
       e: React.ChangeEvent<HTMLInputElement>,
       type: "x" | "y" | "w" | "h"
     ) => {
-      const value = Number(e.target.value);
+      let value = Number(e.target.value);
+
       const layers = storage.get("layers");
       if (type === "x") {
         setX(value);

@@ -21,7 +21,7 @@ export const CursorPing = memo(({ cursorState }: CursorPingProps) => {
         transform: `translate(${x}px, ${y}px)`,
       }}
     >
-      <div className="absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+      <div className="absolute left-0 top-0 -translate-x-[50%] -translate-y-[50%]">
         <div className="animate-ping w-[60px] h-[60px] bg-rose-500 rounded-full"></div>
       </div>
     </div>

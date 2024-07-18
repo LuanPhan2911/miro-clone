@@ -81,11 +81,15 @@ export type CanvasState =
       mode: CanvasMode.None;
     }
   | {
+      mode: CanvasMode.Hand;
+    }
+  | {
       mode: CanvasMode.Delete;
     }
   | {
       mode: CanvasMode.Pressing;
       origin: Point;
+      type: "hand" | "select";
     }
   | {
       mode: CanvasMode.SelectNet;
@@ -137,6 +141,7 @@ export enum CanvasMode {
   Inserting,
   Resizing,
   Pencil,
+  Hand,
 }
 export type Layer =
   | EllipseLayer

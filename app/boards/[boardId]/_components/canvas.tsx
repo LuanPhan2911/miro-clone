@@ -28,6 +28,7 @@ import {
 } from "@liveblocks/react/suspense";
 import { CursorPresence } from "./cursor-presence";
 import {
+  findIntersectingLayersWithRectangle,
   numberToColor,
   pointerEventToCanvasPoint,
   resizeBound,
@@ -41,12 +42,13 @@ import { useDeleteLayer } from "@/hooks/use-delete-layer";
 import { CursorChat } from "./cursor-chat";
 import { SelectionLayerInfo } from "./selection-layer-info";
 import { CursorPing } from "./cursor-ping";
+import { SelectionNetBox } from "./selection-net-box";
 const MAX_LAYER = 100;
 interface CanvasProps {
   boardId: string;
 }
 export const Canvas = ({ boardId }: CanvasProps) => {
-  const layersId = useStorage((root) => root.layerIds);
+  const layerIds = useStorage((root) => root.layerIds);
 
   const [canvasState, setCanvasState] = useState<CanvasState>({
     mode: CanvasMode.None,
@@ -135,6 +137,37 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     },
     [canvasState]
   );
+  const startMultiSelect = useCallback((origin: Point, current: Point) => {
+    if (Math.abs(current.x - origin.y) + Math.abs(current.y - origin.y) > 5) {
+      setCanvasState({
+        mode: CanvasMode.SelectNet,
+        origin,
+        current,
+      });
+    }
+  }, []);
+  const updateSelectionNet = useMutation(
+    ({ storage, setMyPresence }, origin: Point, current: Point) => {
+      const layers = storage.get("layers").toImmutable();
+
+      setCanvasState({
+        mode: CanvasMode.SelectNet,
+        origin,
+        current,
+      });
+      const ids = findIntersectingLayersWithRectangle(
+        layerIds,
+        layers,
+        origin,
+        current
+      );
+
+      setMyPresence({
+        selection: ids,
+      });
+    },
+    [layerIds]
+  );
 
   useEffect(() => {
     const onKeyUp = (e: KeyboardEvent) => {
@@ -199,7 +232,8 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       if (canvasState.mode === CanvasMode.Delete) {
         deleteLayer();
       } else if (
-        canvasState.mode === CanvasMode.Pressing ||
+        (canvasState.mode === CanvasMode.Pressing &&
+          canvasState.type === "select") ||
         canvasState.mode === CanvasMode.None
       ) {
         //Unselect
@@ -207,6 +241,11 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         setCanvasState({ mode: CanvasMode.None });
       } else if (canvasState.mode === CanvasMode.Inserting) {
         insertLayer(canvasState.layerType, point);
+      } else if (
+        canvasState.mode === CanvasMode.Pressing &&
+        canvasState.type === "hand"
+      ) {
+        setCanvasState({ mode: CanvasMode.Hand });
       } else {
         setCanvasState({ mode: CanvasMode.None });
       }
@@ -221,13 +260,18 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       setMyPresence({
         cursor: current,
       });
-
-      if (canvasState.mode === CanvasMode.Resizing) {
+      if (canvasState.mode === CanvasMode.SelectNet) {
+        updateSelectionNet(canvasState.origin, current);
+      } else if (canvasState.mode === CanvasMode.Resizing) {
         resizeSelectedLayer(current);
       } else if (canvasState.mode === CanvasMode.Translating) {
         translateSelectedLayer(current);
       } else if (canvasState.mode === CanvasMode.Pressing) {
-        translateCamera(canvasState.origin, current);
+        if (canvasState.type === "hand") {
+          translateCamera(canvasState.origin, current);
+        } else if (canvasState.type === "select") {
+          startMultiSelect(canvasState.origin, current);
+        }
       }
     },
     [canvasState, camera, resizeSelectedLayer]
@@ -244,7 +288,12 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         return;
       }
       const point = pointerEventToCanvasPoint(e, camera);
-      setCanvasState({ origin: point, mode: CanvasMode.Pressing });
+      const type = canvasState.mode === CanvasMode.Hand ? "hand" : "select";
+      setCanvasState({
+        origin: point,
+        mode: CanvasMode.Pressing,
+        type: type,
+      });
     },
     [camera, canvasState, setCanvasState]
   );
@@ -346,12 +395,14 @@ export const Canvas = ({ boardId }: CanvasProps) => {
     });
     return layerIdsToColor;
   }, [selections]);
-
+  const isHand =
+    canvasState.mode === CanvasMode.Hand ||
+    (canvasState.mode === CanvasMode.Pressing && canvasState.type === "hand");
   return (
     <main
       className="h-full w-full bg-neutral-100 touch-none relative"
       style={{
-        cursor: "url(/cursor.svg) 0 0, auto",
+        cursor: `${isHand ? "pointer" : "url(/cursor.svg) 0 0, auto"}`,
       }}
     >
       <Info boardId={boardId} />
@@ -370,7 +421,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
         clearHistory={historyClear}
         lastUseColor={lastUsedColor}
         setLastUsedColor={setLastUsedColor}
-        isClear={layersId.length === 0}
+        isClear={layerIds.length === 0}
       />
       <SelectionTool
         camera={camera}
@@ -398,7 +449,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
             transform: `translate(${camera.x}px, ${camera.y}px)`,
           }}
         >
-          {layersId.map((layerId) => {
+          {layerIds.map((layerId) => {
             return (
               <LayerPreview
                 key={layerId}
@@ -409,6 +460,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
             );
           })}
           <SelectionBox onResizePointerDown={onResizePointerDown} />
+          <SelectionNetBox canvasState={canvasState} />
         </g>
       </svg>
     </main>
