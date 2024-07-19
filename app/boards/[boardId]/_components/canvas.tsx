@@ -7,7 +7,6 @@ import { Toolbar } from "./toolbar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { nanoid } from "nanoid";
 import {
   Camera,
   CanvasMode,
@@ -15,10 +14,6 @@ import {
   Color,
   CursorMode,
   CursorState,
-  LayerType,
-  Point,
-  Side,
-  XYWH,
 } from "@/types/canvas";
 import {
   useHistory,
@@ -30,14 +25,9 @@ import {
 import { CursorPresence } from "./cursor-presence";
 import {
   colorToCss,
-  findIntersectingLayersWithRectangle,
   numberToColor,
-  penPointToPathLayer,
   pointerEventToCanvasPoint,
-  resizeBound,
 } from "@/lib/utils";
-import { toast } from "sonner";
-import { LiveObject } from "@liveblocks/client";
 import { LayerPreview } from "./layer-preview";
 import { SelectionBox } from "./selection-box";
 import { SelectionTool } from "./selection-tool";
@@ -48,7 +38,14 @@ import { CursorPing } from "./cursor-ping";
 import { SelectionNetBox } from "./selection-net-box";
 import { Path } from "./path";
 import { useDisabledScrollBounce } from "@/hooks/use-disabled-scroll-bounce";
-const MAX_LAYER = 100;
+import { useInsertLayer } from "@/hooks/use-insert-layer";
+import { useResizeLayer } from "@/hooks/use-resize-layer";
+import { useMultiSelectLayer } from "@/hooks/use-multi-select-layer";
+import { useDrawing } from "@/hooks/use-drawing";
+import { useSelectLayer } from "@/hooks/use-select-layer";
+import { useTranslateLayer } from "@/hooks/use-translate-layer";
+import { useCamera } from "@/hooks/use-camera";
+export const MAX_LAYER = 100;
 interface CanvasProps {
   boardId: string;
 }
@@ -83,130 +80,31 @@ export const Canvas = ({ boardId }: CanvasProps) => {
   const [showSelectionLayerInfo, setShowSelectionLayerInfo] = useState(true);
   //Pointer move and Pointer leave
 
-  const insertLayer = useMutation(
-    (
-      { storage, setMyPresence },
-      layerType:
-        | LayerType.Ellipse
-        | LayerType.Note
-        | LayerType.Rectangle
-        | LayerType.Text,
-      position: Point
-    ) => {
-      const liveLayerIds = storage.get("layerIds");
-      if (liveLayerIds.length >= MAX_LAYER) {
-        toast.warning(`Max layer of board is ${MAX_LAYER}`);
-        return;
-      }
-      const liveLayers = storage.get("layers");
-      const layerId = nanoid();
-      const layer = new LiveObject({
-        type: layerType,
-        x: position.x,
-        y: position.y,
-        height: 100,
-        width: 100,
-        fill: lastUsedColor,
-      });
-
-      liveLayerIds.push(layerId);
-      liveLayers.set(layerId, layer);
-
-      setMyPresence(
-        {
-          selection: [layerId],
-        },
-        {
-          addToHistory: true,
-        }
-      );
-      setCanvasState({ mode: CanvasMode.None });
-    },
-    [lastUsedColor]
-  );
+  const insertLayer = useInsertLayer({ lastUsedColor, setCanvasState });
   const deleteLayer = useDeleteLayer();
+  const { resizeSelectedLayer, onResizePointerDown } = useResizeLayer({
+    canvasState,
+    setCanvasState,
+  });
 
-  const resizeSelectedLayer = useMutation(
-    ({ storage, self }, point: Point) => {
-      if (canvasState.mode !== CanvasMode.Resizing) {
-        return;
-      }
-      const bounds = resizeBound(
-        canvasState.initialBounds,
-        canvasState.corner,
-        point
-      );
-      const liveLayers = storage.get("layers");
-      const layer = liveLayers.get(self.presence.selection[0]);
-      if (layer) {
-        layer.update(bounds);
-      }
-    },
-    [canvasState]
-  );
-  const startMultiSelect = useCallback((origin: Point, current: Point) => {
-    if (Math.abs(current.x - origin.y) + Math.abs(current.y - origin.y) > 5) {
-      setCanvasState({
-        mode: CanvasMode.SelectNet,
-        origin,
-        current,
-      });
-    }
-  }, []);
-  const updateSelectionNet = useMutation(
-    ({ storage, setMyPresence }, origin: Point, current: Point) => {
-      const layers = storage.get("layers").toImmutable();
-
-      setCanvasState({
-        mode: CanvasMode.SelectNet,
-        origin,
-        current,
-      });
-      const ids = findIntersectingLayersWithRectangle(
-        layerIds,
-        layers,
-        origin,
-        current
-      );
-
-      setMyPresence({
-        selection: ids,
-      });
-    },
-    [layerIds]
-  );
-  const startDrawing = useMutation(
-    ({ setMyPresence }, point: Point, pressure: number) => {
-      setMyPresence({
-        penDraft: [[point.x, point.y, pressure]],
-        penColor: lastUsedColor,
-      });
-    },
-    [lastUsedColor]
-  );
-  const continueDrawing = useMutation(
-    ({ self, setMyPresence }, current: Point, e: React.PointerEvent) => {
-      const { penDraft } = self.presence;
-      if (
-        penDraft == null ||
-        e.buttons !== 1 ||
-        canvasState.mode !== CanvasMode.Pencil
-      ) {
-        return;
-      }
-
-      setMyPresence({
-        cursor: current,
-        penDraft:
-          penDraft.length === 1 &&
-          penDraft[0][0] === current.x &&
-          penDraft[0][1] === current.y
-            ? penDraft
-            : [...penDraft, [current.x, current.y, e.pressure]],
-      });
-    },
-    [canvasState.mode]
-  );
+  const { startMultiSelect, updateSelectionNet } = useMultiSelectLayer({
+    setCanvasState,
+  });
+  const { continueDrawing, startDrawing, insertPath } = useDrawing({
+    canvasState,
+    lastUsedColor,
+    setCanvasState,
+  });
+  const { onLayerPointerDown, unSelectLayer } = useSelectLayer({
+    camera,
+    canvasState,
+    setCanvasState,
+  });
+  const { translateSelectedLayer } = useTranslateLayer({
+    canvasState,
+    setCanvasState,
+  });
+  const { translateCamera } = useCamera({ camera, setCamera });
   useEffect(() => {
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "/") {
@@ -264,111 +162,7 @@ export const Canvas = ({ boardId }: CanvasProps) => {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [deleteLayer]);
-  const onLayerPointerDown = useMutation(
-    ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
-      if (
-        canvasState.mode === CanvasMode.Inserting ||
-        canvasState.mode === CanvasMode.Pencil
-      ) {
-        return;
-      }
 
-      historyPause(); //??
-      e.stopPropagation();
-      const point = pointerEventToCanvasPoint(e, camera);
-      if (!self.presence.selection.includes(layerId)) {
-        setMyPresence({ selection: [layerId] }, { addToHistory: true });
-      }
-      if (canvasState.mode !== CanvasMode.Delete) {
-        setCanvasState({ mode: CanvasMode.Translating, current: point });
-      }
-    },
-    [setCanvasState, historyPause, camera, canvasState.mode]
-  );
-  const onResizePointerDown = useCallback(
-    (corner: Side, initialBounds: XYWH) => {
-      historyPause();
-      setCanvasState({
-        mode: CanvasMode.Resizing,
-        initialBounds,
-        corner,
-      });
-    },
-    [historyPause]
-  );
-  const translateSelectedLayer = useMutation(
-    ({ storage, self }, point: Point) => {
-      if (canvasState.mode !== CanvasMode.Translating) {
-        return;
-      }
-      const offset = {
-        x: point.x - canvasState.current.x,
-        y: point.y - canvasState.current.y,
-      };
-      const liveLayers = storage.get("layers");
-      for (let id of self.presence.selection) {
-        const layer = liveLayers.get(id);
-        if (layer) {
-          layer.update({
-            x: layer.get("x") + offset.x,
-            y: layer.get("y") + offset.y,
-          });
-        }
-      }
-      setCanvasState({
-        mode: CanvasMode.Translating,
-        current: point,
-      });
-    },
-    [canvasState]
-  );
-  const unSelectLayer = useMutation(({ setMyPresence, self }) => {
-    if (self.presence.selection.length > 0) {
-      setMyPresence({ selection: [] }, { addToHistory: true });
-    }
-  }, []);
-  const translateCamera = useCallback((origin: Point, point: Point) => {
-    const offset = {
-      x: point.x - origin.x,
-      y: point.y - origin.y,
-    };
-    setCamera((prev) => {
-      return {
-        x: prev.x + offset.x,
-        y: prev.y + offset.y,
-      };
-    });
-  }, []);
-  const insertPath = useMutation(
-    ({ storage, self, setMyPresence }) => {
-      const { penDraft, penColor } = self.presence;
-      const liveLayers = storage.get("layers");
-      if (
-        penDraft == null ||
-        penDraft.length < 2 ||
-        liveLayers.size >= MAX_LAYER
-      ) {
-        setMyPresence({
-          penDraft: null,
-        });
-        return;
-      }
-      const id = nanoid();
-      liveLayers.set(
-        id,
-        new LiveObject(penPointToPathLayer(penDraft, lastUsedColor))
-      );
-      const liveLayerIds = storage.get("layerIds");
-      liveLayerIds.push(id);
-      setMyPresence({
-        penDraft: null,
-      });
-      setCanvasState({
-        mode: CanvasMode.Pencil,
-      });
-    },
-    [lastUsedColor]
-  );
   const onPointerUp = useMutation(
     ({}, e: React.PointerEvent) => {
       const point = pointerEventToCanvasPoint(e, camera);
