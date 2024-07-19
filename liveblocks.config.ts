@@ -2,7 +2,7 @@
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
 
 import { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
-import { Layer } from "./types/canvas";
+import { Color, Layer } from "./types/canvas";
 
 declare global {
   interface Liveblocks {
@@ -14,6 +14,8 @@ declare global {
       message: string;
       previousMessage: string | null;
       ping: boolean;
+      penDraft: [x: number, y: number, pressure: number][] | null;
+      penColor: Color | null;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.

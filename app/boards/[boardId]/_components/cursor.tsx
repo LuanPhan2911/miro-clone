@@ -17,13 +17,16 @@ export const Cursor = memo(({ connectionId }: CursorProps) => {
   }
   const { x, y } = cursor;
   const name = info?.name || "Teammate";
+
   if (ping) {
     return (
-      <div
-        className="fixed top-0 left-0 pointer-events-none"
+      <foreignObject
+        width={200}
+        height={200}
         style={{
           transform: `translate(${x}px, ${y}px)`,
         }}
+        className="relative drop-shadow-sm"
       >
         <div className="absolute left-0 top-0 -translate-x-[50%] -translate-y-[50%]">
           <div
@@ -35,15 +38,17 @@ export const Cursor = memo(({ connectionId }: CursorProps) => {
             {" "}
           </div>
         </div>
-      </div>
+      </foreignObject>
     );
   }
   return (
-    <div
+    <foreignObject
+      width={200}
+      height={200}
       style={{
         transform: `translate(${x}px, ${y}px)`,
       }}
-      className="pointer-events-none absolute top-0 left-0"
+      className="relative drop-shadow-sm"
     >
       <MousePointer2
         className="w-5 h-5"
@@ -62,7 +67,7 @@ export const Cursor = memo(({ connectionId }: CursorProps) => {
         {message && <div className="text-sm">{message}</div>}
         {previousMessage && <div className="text-sm">{previousMessage}</div>}
       </div>
-    </div>
+    </foreignObject>
   );
 });
 Cursor.displayName = "Cursor";

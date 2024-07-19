@@ -15,16 +15,17 @@ export const Ellipse = ({
 }: EllipseProps) => {
   const { fill, height, width, x, y } = layer;
   return (
-    <circle
+    <ellipse
       className="drop-shadow-md"
       onPointerDown={(e) => onPointerDown(e, id)}
       style={{
         transform: `translate(${x}px, ${y}px)`,
       }}
-      cx={0}
-      cy={0}
-      r={50}
-      strokeWidth={2}
+      cx={width / 2}
+      cy={height / 2}
+      rx={width / 2}
+      ry={height / 2}
+      strokeWidth={1}
       fill={fill ? colorToCss(fill) : "#000"}
       stroke={selectionColor || "transparent"}
     />
